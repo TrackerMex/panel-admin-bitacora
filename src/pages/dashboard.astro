@@ -1,0 +1,8 @@
+---
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import AdminApp from "@/components/AdminApp";
+---
+
+<AdminLayout title="Panel Admin | Dashboard">
+  <AdminApp client:load initialView="dashboard" />
+</AdminLayout>
