@@ -44,8 +44,8 @@ module.exports = {
         "4xl": "calc(var(--radius) + 1.125rem)",
       },
       fontFamily: {
-        sans: ["Public Sans Variable", "Inter", "system-ui", "sans-serif"],
-        heading: ["Public Sans Variable", "Inter", "system-ui", "sans-serif"],
+        sans: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        heading: ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
       },
       ringWidth: {
         3: "3px",

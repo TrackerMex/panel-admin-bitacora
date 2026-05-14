@@ -1,6 +1,5 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/public-sans";
 
 @tailwind base;
 @tailwind components;
@@ -75,6 +74,33 @@
   --sidebar-ring: oklch(0.553 0.013 58.071);
 }
 
+@keyframes admin-view-in {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-card-in {
+  from {
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes admin-row-in {
+  from {
+    transform: translateX(-4px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -102,5 +128,51 @@
     -webkit-text-fill-color: var(--foreground);
     box-shadow: 0 0 0 1000px var(--background) inset;
     transition: background-color 9999s ease-in-out 0s;
+  }
+}
+
+@layer components {
+  .admin-view-enter {
+    animation: admin-view-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .admin-card-enter {
+    animation: admin-card-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .admin-row-enter {
+    animation: admin-row-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .admin-shell button:not(:disabled),
+  .admin-shell a[data-slot="pagination-link"] {
+    transition:
+      transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .admin-shell button:not(:disabled):active,
+  .admin-shell a[data-slot="pagination-link"]:active {
+    transform: translateY(1px) scale(0.99);
+  }
+
+  .admin-table-row {
+    transition:
+      background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

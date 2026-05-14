@@ -3,10 +3,11 @@ import {
   Activity,
   Building2,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   EyeOff,
   LayoutDashboard,
-  LockKeyhole,
   LogOut,
   Monitor,
   Moon,
@@ -17,8 +18,9 @@ import {
   Truck,
   UserPlus,
   Users,
+  X,
 } from "lucide-react";
-import { api, login, type Cliente, type ResumenData, type Usuario } from "@/lib/api";
+import { api, type Cliente, type ResumenData, type Usuario } from "@/lib/api";
 import { clearSession, getSession, type AdminSession } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,15 +41,12 @@ import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Toaster } from "@/components/ui/sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 
-type View = "login" | "dashboard" | "clientes" | "usuarios";
+type View = "dashboard" | "clientes" | "usuarios";
 type ThemeMode = "light" | "dark" | "system";
 
 const tabs = [
@@ -58,6 +57,7 @@ const tabs = [
 
 const defaultTabs = [0, 1, 2, 3, 4, 5, 6, 7];
 const tablePageSize = 5;
+const tempPasswordsKey = "bitacoraAdminTempPasswords";
 
 function routeTo(path: string) {
   window.location.href = path;
@@ -71,6 +71,24 @@ function formatDate(value: string) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("es-MX").format(value);
+}
+
+function readTempPasswords() {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(sessionStorage.getItem(tempPasswordsKey) || "{}") as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function saveTempPassword(email: string, password: string) {
+  if (typeof window === "undefined") return;
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail || !password) return;
+  const passwords = readTempPasswords();
+  passwords[normalizedEmail] = password;
+  sessionStorage.setItem(tempPasswordsKey, JSON.stringify(passwords));
 }
 
 function activeBadge(active: number) {
@@ -139,7 +157,7 @@ function ThemeToggle() {
   ];
 
   return (
-    <div className="inline-flex rounded-full border border-border bg-muted p-1">
+    <div className="inline-flex rounded-lg border border-border bg-muted p-1">
       {options.map((option) => {
         const Icon = option.icon;
         const active = theme === option.value;
@@ -147,7 +165,7 @@ function ThemeToggle() {
           <button
             key={option.value}
             type="button"
-            className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition ${
+            className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-bold transition ${
               active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => updateTheme(option.value)}
@@ -159,121 +177,6 @@ function ThemeToggle() {
         );
       })}
     </div>
-  );
-}
-
-function LoginView() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const canSubmit = username.trim() !== "" && password.trim() !== "" && !loading;
-
-  useEffect(() => {
-    const session = getSession();
-    if (session?.user.role?.toLowerCase() === "admin") {
-      routeTo("/dashboard");
-    }
-  }, []);
-
-  async function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      await login(username.trim(), password.trim());
-      routeTo("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo iniciar sesión");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <main className="grid min-h-screen place-items-center px-4 py-8">
-      <section className="grid w-full max-w-5xl overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="hidden border-r border-border bg-muted p-8 lg:flex lg:flex-col lg:justify-between">
-          <div>
-            <div className="mb-7 flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Truck className="h-5 w-5" />
-            </div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">Tracker México GPS</p>
-            <h1 className="mt-3 max-w-sm text-3xl font-black leading-tight text-foreground">
-              Control central para clientes, usuarios y unidades.
-            </h1>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">
-              Panel operativo conectado a Bitácora y Planificador.
-            </p>
-          </div>
-        </div>
-
-        <div className="p-6 sm:p-8 lg:p-10">
-          <div className="mb-8 flex items-start justify-between gap-4">
-            <div>
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground lg:hidden">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Panel Admin</p>
-              <h2 className="mt-2 text-2xl font-black text-foreground">Iniciar sesión</h2>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <Badge variant="secondary">Seguro</Badge>
-            </div>
-          </div>
-
-          <form className="space-y-5" onSubmit={onSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email administrador</Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin@tracker.local"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-11"
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                  onClick={() => setShowPassword((value) => !value)}
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            {error ? (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-red-800">
-                {error}
-              </div>
-            ) : null}
-            <Button className="h-11 w-full" disabled={!canSubmit}>
-              <LockKeyhole className="h-4 w-4" />
-              {loading ? "Validando acceso..." : "Entrar al panel"}
-            </Button>
-            <p className="text-center text-xs font-semibold text-muted-foreground">
-              Usa cuenta con rol admin. Sesión expira automáticamente.
-            </p>
-          </form>
-        </div>
-      </section>
-    </main>
   );
 }
 
@@ -347,7 +250,7 @@ function Shell({ view }: { view: View }) {
             </Button>
           </div>
         </header>
-        <main className="p-5 lg:p-7">
+        <main className="admin-view-enter p-5 lg:p-7">
           {error ? <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p> : null}
           {view === "dashboard" ? <DashboardView onError={setError} /> : null}
           {view === "clientes" ? <ClientesView onError={setError} /> : null}
@@ -452,7 +355,7 @@ function DashboardView({ onError }: { onError: (message: string) => void }) {
         {kpis.map((kpi) => {
           const Icon = kpi.icon;
           return (
-            <Card key={kpi.label} className="overflow-hidden">
+            <Card key={kpi.label} className="admin-card-enter overflow-hidden">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
@@ -476,7 +379,7 @@ function DashboardView({ onError }: { onError: (message: string) => void }) {
           <RecentCard title="Ultimos clientes" rows={data?.ultimosClientes || []} type="clientes" loading={loading} />
           <RecentCard title="Ultimos usuarios" rows={data?.ultimosUsuarios || []} type="usuarios" loading={loading} />
         </div>
-        <Card className="xl:sticky xl:top-6 xl:self-start">
+        <Card className="admin-card-enter xl:sticky xl:top-6 xl:self-start">
           <CardHeader>
             <CardTitle>Lectura rapida</CardTitle>
             <CardDescription>Indicadores derivados para detectar carga y cobertura.</CardDescription>
@@ -553,7 +456,7 @@ function RecentCard({
   const colSpan = type === "usuarios" ? 4 : 3;
 
   return (
-    <Card>
+    <Card className="admin-card-enter">
       <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <CardTitle>{title}</CardTitle>
@@ -593,7 +496,7 @@ function RecentCard({
               ))
             ) : rows.length ? (
               rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} className="admin-row-enter admin-table-row">
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-black uppercase text-secondary-foreground">
@@ -670,19 +573,22 @@ function TablePagination({
       <p className="text-sm font-semibold text-muted-foreground">
         Mostrando {start}-{end} de {totalItems}
       </p>
-      <Pagination className="mx-0 w-auto justify-start sm:justify-end">
+      <Pagination className="mx-0 w-auto justify-start sm:justify-end" aria-label="Paginacion de tabla">
         <PaginationContent>
           <PaginationItem>
-            <PaginationPrevious
-              href="#"
-              text="Anterior"
-              aria-disabled={currentPage === 1}
-              className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-              onClick={(event) => {
-                event.preventDefault();
+            <Button
+              type="button"
+              variant="ghost"
+              size="default"
+              disabled={currentPage === 1}
+              aria-label="Ir a la pagina anterior"
+              onClick={() => {
                 goTo(currentPage - 1);
               }}
-            />
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Anterior</span>
+            </Button>
           </PaginationItem>
           {visiblePages.map((pageNumber, index) => {
             const previous = visiblePages[index - 1];
@@ -694,31 +600,36 @@ function TablePagination({
                   </PaginationItem>
                 ) : null}
                 <PaginationItem>
-                  <PaginationLink
-                    href="#"
-                    isActive={currentPage === pageNumber}
-                    onClick={(event) => {
-                      event.preventDefault();
+                  <Button
+                    type="button"
+                    variant={currentPage === pageNumber ? "outline" : "ghost"}
+                    size="icon"
+                    aria-current={currentPage === pageNumber ? "page" : undefined}
+                    aria-label={`Ir a la pagina ${pageNumber}`}
+                    onClick={() => {
                       goTo(pageNumber);
                     }}
                   >
                     {pageNumber}
-                  </PaginationLink>
+                  </Button>
                 </PaginationItem>
               </div>
             );
           })}
           <PaginationItem>
-            <PaginationNext
-              href="#"
-              text="Siguiente"
-              aria-disabled={currentPage === totalPages}
-              className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-              onClick={(event) => {
-                event.preventDefault();
+            <Button
+              type="button"
+              variant="ghost"
+              size="default"
+              disabled={currentPage === totalPages}
+              aria-label="Ir a la pagina siguiente"
+              onClick={() => {
                 goTo(currentPage + 1);
               }}
-            />
+            >
+              <span className="hidden sm:inline">Siguiente</span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </PaginationItem>
         </PaginationContent>
       </Pagination>
@@ -730,7 +641,9 @@ function ClientesView({ onError }: { onError: (message: string) => void }) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [createdAccess, setCreatedAccess] = useState<{ email: string; password: string } | null>(null);
+  const [showCreatedPassword, setShowCreatedPassword] = useState(false);
+  const [showFormPassword, setShowFormPassword] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({
@@ -760,7 +673,8 @@ function ClientesView({ onError }: { onError: (message: string) => void }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
-    setNotice("");
+    setCreatedAccess(null);
+    setShowCreatedPassword(false);
     onError("");
     try {
       await api.crearClienteUsuario({
@@ -768,11 +682,13 @@ function ClientesView({ onError }: { onError: (message: string) => void }) {
         tabs: form.role === "lector" ? [3, 4, 5, 6, 7] : defaultTabs,
         activo: true,
       });
-      setNotice("Cliente guardado. Acceso temporal: " + form.email + " / " + form.passwordTemporal);
+      setCreatedAccess({ email: form.email, password: form.passwordTemporal });
+      saveTempPassword(form.email, form.passwordTemporal);
       toast.success("Cliente creado correctamente", {
         description: `${form.clienteNombre} queda vinculado a ${form.email}.`,
       });
       setForm({ clienteNombre: "", usuarioNombre: "", email: "", passwordTemporal: "", role: "editor" });
+      setShowFormPassword(false);
       setDialogOpen(false);
       setPage(1);
       await load();
@@ -800,13 +716,28 @@ function ClientesView({ onError }: { onError: (message: string) => void }) {
         <MiniMetric label="Usuarios vinculados" value={loading ? "..." : formatNumber(totalUsuarios)} icon={Users} />
       </section>
 
-      {notice ? (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
-          {notice}
-        </p>
+      {createdAccess ? (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+          <p className="font-semibold">Cliente guardado. Acceso temporal asignado:</p>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <span className="font-medium">{createdAccess.email}</span>
+            <span className="hidden text-emerald-600 dark:text-emerald-400 sm:inline">/</span>
+            <span className="inline-flex min-h-9 items-center gap-2 rounded-md border border-emerald-200 bg-background px-2 py-1 font-mono text-xs font-semibold text-foreground dark:border-emerald-900/70">
+              <span>{showCreatedPassword ? createdAccess.password : "**********"}</span>
+              <button
+                type="button"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => setShowCreatedPassword((value) => !value)}
+                aria-label={showCreatedPassword ? "Ocultar password asignado" : "Mostrar password asignado"}
+              >
+                {showCreatedPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </span>
+          </div>
+        </div>
       ) : null}
 
-      <Card>
+      <Card className="admin-card-enter">
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <CardTitle>Listado de clientes</CardTitle>
@@ -830,11 +761,11 @@ function ClientesView({ onError }: { onError: (message: string) => void }) {
                     <div className="rounded-md border border-border bg-muted/40 p-4">
                       <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Cliente</p>
                       <div className="mt-4 space-y-4">
-                        <Field label="Nombre del cliente">
-                          <Input value={form.clienteNombre} onChange={(e) => setForm({ ...form, clienteNombre: e.target.value })} required />
+                        <Field id="cliente-nombre" label="Nombre del cliente">
+                          <Input id="cliente-nombre" value={form.clienteNombre} onChange={(e) => setForm({ ...form, clienteNombre: e.target.value })} required />
                         </Field>
-                        <Field label="Rol inicial">
-                          <NativeSelect className="w-full" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                        <Field id="cliente-role" label="Rol inicial">
+                          <NativeSelect id="cliente-role" className="w-full" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
                             <NativeSelectOption value="editor">Editor</NativeSelectOption>
                             <NativeSelectOption value="lector">Lector</NativeSelectOption>
                             <NativeSelectOption value="admin">Admin</NativeSelectOption>
@@ -846,14 +777,32 @@ function ClientesView({ onError }: { onError: (message: string) => void }) {
                     <div className="rounded-md border border-border p-4">
                       <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Usuario principal</p>
                       <div className="mt-4 space-y-4">
-                        <Field label="Nombre usuario">
-                          <Input value={form.usuarioNombre} onChange={(e) => setForm({ ...form, usuarioNombre: e.target.value })} required />
+                        <Field id="usuario-nombre" label="Nombre usuario">
+                          <Input id="usuario-nombre" value={form.usuarioNombre} onChange={(e) => setForm({ ...form, usuarioNombre: e.target.value })} required />
                         </Field>
-                        <Field label="Email">
-                          <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+                        <Field id="usuario-email" label="Email">
+                          <Input id="usuario-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
                         </Field>
-                        <Field label="Password temporal">
-                          <Input value={form.passwordTemporal} onChange={(e) => setForm({ ...form, passwordTemporal: e.target.value })} required />
+                        <Field id="usuario-password-temporal" label="Password temporal">
+                          <div className="relative">
+                            <Input
+                              id="usuario-password-temporal"
+                              type={showFormPassword ? "text" : "password"}
+                              autoComplete="new-password"
+                              className="pr-11"
+                              value={form.passwordTemporal}
+                              onChange={(e) => setForm({ ...form, passwordTemporal: e.target.value })}
+                              required
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                              onClick={() => setShowFormPassword((value) => !value)}
+                              aria-label={showFormPassword ? "Ocultar password temporal" : "Mostrar password temporal"}
+                            >
+                              {showFormPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                         </Field>
                       </div>
                     </div>
@@ -900,7 +849,7 @@ function ClientesView({ onError }: { onError: (message: string) => void }) {
                 ))
               ) : clientes.length ? (
                 clientesPaginados.map((cliente) => (
-                  <TableRow key={cliente.id}>
+                  <TableRow key={cliente.id} className="admin-row-enter admin-table-row">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-black text-secondary-foreground">
@@ -937,7 +886,7 @@ function ClientesView({ onError }: { onError: (message: string) => void }) {
 
 function MiniMetric({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Building2 }) {
   return (
-    <Card>
+    <Card className="admin-card-enter">
       <CardContent className="flex items-center justify-between gap-4 p-4">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
@@ -956,6 +905,8 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [tempPasswords, setTempPasswords] = useState<Record<string, string>>({});
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   async function load() {
     setLoading(true);
@@ -970,6 +921,7 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
   }
 
   useEffect(() => {
+    setTempPasswords(readTempPasswords());
     load();
   }, []);
 
@@ -994,7 +946,7 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
         <MiniMetric label="Sin cliente" value={loading ? "..." : formatNumber(sinCliente)} icon={Users} />
       </section>
 
-      <Card>
+      <Card className="admin-card-enter">
         <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <CardTitle>Usuarios</CardTitle>
@@ -1005,7 +957,9 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
           <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
             <div className="relative sm:w-80">
               <Input
+                id="usuarios-busqueda"
                 className="h-10 pr-10"
+                aria-label="Buscar usuarios"
                 placeholder="Buscar por usuario, email, rol o cliente"
                 value={query}
                 onChange={(e) => {
@@ -1016,14 +970,14 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
               {query ? (
                 <button
                   type="button"
-                  className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={() => {
                     setQuery("");
                     setPage(1);
                   }}
                   aria-label="Limpiar busqueda"
                 >
-                  x
+                  <X className="h-4 w-4" />
                 </button>
               ) : null}
             </div>
@@ -1038,6 +992,7 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Usuario</TableHead>
+                <TableHead>Password</TableHead>
                 <TableHead>Rol</TableHead>
                 <TableHead>Clientes</TableHead>
                 <TableHead>Tabs</TableHead>
@@ -1050,6 +1005,7 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
                 Array.from({ length: 6 }).map((_, index) => (
                   <TableRow key={index}>
                     <TableCell><div className="h-4 w-48 animate-pulse rounded bg-muted" /></TableCell>
+                    <TableCell><div className="h-4 w-28 animate-pulse rounded bg-muted" /></TableCell>
                     <TableCell><div className="h-5 w-16 animate-pulse rounded-full bg-muted" /></TableCell>
                     <TableCell><div className="h-4 w-36 animate-pulse rounded bg-muted" /></TableCell>
                     <TableCell><div className="h-4 w-20 animate-pulse rounded bg-muted" /></TableCell>
@@ -1059,7 +1015,7 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
                 ))
               ) : filtered.length ? (
                 usuariosPaginados.map((usuario) => (
-                  <TableRow key={usuario.id}>
+                  <TableRow key={usuario.id} className="admin-row-enter admin-table-row">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-black text-secondary-foreground">
@@ -1070,6 +1026,28 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
                           <p className="truncate text-xs text-muted-foreground">{usuario.email}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {tempPasswords[usuario.email.toLowerCase()] ? (
+                        <span className="inline-flex min-h-9 items-center gap-2 rounded-md border border-border bg-background px-2 py-1 font-mono text-xs font-semibold text-foreground">
+                          <span>{visiblePasswords[usuario.email] ? tempPasswords[usuario.email.toLowerCase()] : "**********"}</span>
+                          <button
+                            type="button"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                            onClick={() =>
+                              setVisiblePasswords((current) => ({
+                                ...current,
+                                [usuario.email]: !current[usuario.email],
+                              }))
+                            }
+                            aria-label={visiblePasswords[usuario.email] ? "Ocultar password temporal" : "Mostrar password temporal"}
+                          >
+                            {visiblePasswords[usuario.email] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </span>
+                      ) : (
+                        <Badge variant="outline">Protegida</Badge>
+                      )}
                     </TableCell>
                     <TableCell>{roleBadge(usuario.role)}</TableCell>
                     <TableCell>
@@ -1092,7 +1070,7 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center">
+                  <TableCell colSpan={7} className="py-10 text-center">
                     <p className="font-semibold text-foreground">No hay usuarios para esa busqueda</p>
                     <p className="mt-1 text-sm text-muted-foreground">Ajusta el texto o actualiza la lista.</p>
                   </TableCell>
@@ -1107,18 +1085,15 @@ function UsuariosView({ onError }: { onError: (message: string) => void }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label htmlFor={id}>{label}</Label>
       {children}
     </div>
   );
 }
 
 export default function AdminApp({ initialView }: { initialView: View }) {
-  if (initialView === "login") {
-    return <LoginView />;
-  }
   return <Shell view={initialView} />;
 }
