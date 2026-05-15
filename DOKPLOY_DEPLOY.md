@@ -14,15 +14,15 @@ Este proyecto se despliega como el servicio `admin` dentro del proyecto `tracker
 
 Configura en Dokploy el build arg:
 
-- `PUBLIC_BITACORA_API_BASE=https://bitacora.trackergps.cloud/bitacora_/src`
+- `PUBLIC_BITACORA_API_BASE=https://bitacora.trackergps.cloud/src`
 
 Astro inyecta `PUBLIC_BITACORA_API_BASE` durante el build, por eso debe existir antes de construir la imagen.
 
-## Validación
+## Validacion
 
 ```bash
 docker build \
-  --build-arg PUBLIC_BITACORA_API_BASE=https://bitacora.trackergps.cloud/bitacora_/src \
+  --build-arg PUBLIC_BITACORA_API_BASE=https://bitacora.trackergps.cloud/src \
   -t bitacora-admin:latest .
 
 docker run --rm -p 8082:80 bitacora-admin:latest
@@ -32,4 +32,4 @@ Revisar:
 
 - `http://localhost:8082/login`
 - `http://localhost:8082/dashboard`
-- Login admin consumiendo `https://bitacora.trackergps.cloud/bitacora_/src/usuarios/login.php`
+- Login admin consumiendo `https://bitacora.trackergps.cloud/src/usuarios/login.php`
